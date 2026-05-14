@@ -4935,7 +4935,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: An Afternoon Nap
+  m_text: An Afternoon Dream
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8502a1ab9133f4b5f895cd5511058078, type: 2}
   m_sharedMaterial: {fileID: -5172770432244533936, guid: 8502a1ab9133f4b5f895cd5511058078, type: 2}
