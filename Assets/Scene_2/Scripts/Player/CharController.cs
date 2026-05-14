@@ -34,6 +34,7 @@ public class CharController : MonoBehaviour
     private bool isRunning;
     private float footstepTimer;
     private float thirstSpeedModifier = 1f;
+    private bool _frozen = true;
 
     void Start()
     {
@@ -45,6 +46,9 @@ public class CharController : MonoBehaviour
 
     void Update()
     {
+        if (_frozen)
+            return;
+
         cameraRot();
         move();
         footsteps();
@@ -142,5 +146,10 @@ public class CharController : MonoBehaviour
     public bool IsRunning()
     {
         return isRunning;
+    }
+
+    public void SetFrozen(bool frozen)
+    {
+        _frozen = frozen;
     }
 }

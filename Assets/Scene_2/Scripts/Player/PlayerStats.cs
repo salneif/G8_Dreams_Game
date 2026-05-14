@@ -13,12 +13,13 @@ namespace OmmAlQubays
         [SerializeField] private float speedModifierLow = 0.85f;
         [SerializeField] private float speedModifierCritical = 0.70f;
         [SerializeField] private float jinnProximityDrainBonus = 0.5f;
-
         [SerializeField] private float maxOil = 100f;
         [SerializeField] private float oilDrainRate = 0.5f;
         [SerializeField] private float startingOil = 100f;
-
         [SerializeField] private float oilLowThreshold = 0.2f;
+        [SerializeField] private float maxHealth = 100f;
+        [SerializeField] private float startingHealth = 100f;
+        [SerializeField] private float healthLowThreshold = 0.4f;
         [SerializeField] private CharController playerMovement;
         [SerializeField] private LanternController lanternController;
 
@@ -27,14 +28,21 @@ namespace OmmAlQubays
         public event Action OnThirstDepleted;
         public event Action OnOilLow;
         public event Action OnOilDepleted;
+        public event Action OnHealthLow;
+        public event Action OnHealthDepleted;
+        private bool _canDrainThirst = false;
 
         [SerializeField] private float _currentThirst;
         [SerializeField] private float _currentOil;
+        [SerializeField] private float _currentHealth;
+
         private bool _thirstLowFired;
         private bool _thirstCriticalFired;
         private bool _thirstDepletedFired;
         private bool _oilLowFired;
         private bool _oilDepletedFired;
+        private bool _healthLowFired;
+        private bool _healthDepletedFired;
 
         private bool _hasCollapsed;
         private bool _jinnProximityActive;
@@ -43,11 +51,14 @@ namespace OmmAlQubays
         private void Awake()
         {
             _currentThirst = startingThirst;
-            _currentOil = startingOil;
+            _currentOil    = startingOil;
+            _currentHealth = startingHealth;
         }
 
         private void Update()
         {
+            if (!_canDrainThirst)
+                    return;
             if (_hasCollapsed)
                 return;
 
@@ -57,7 +68,7 @@ namespace OmmAlQubays
 
         private void DrainThirst()
         {
-            if (_currentThirst <= 0f)
+            if (!_canDrainThirst || _currentThirst <= 0f)
                 return;
 
             float drainThisFrame = baseDrainRate * _drainRateMultiplier * Time.deltaTime;
@@ -69,7 +80,7 @@ namespace OmmAlQubays
 
             EvaluateThirstThresholds();
         }
-
+        
         private void EvaluateThirstThresholds()
         {
             float normalized = ThirstNormalized();
@@ -140,8 +151,31 @@ namespace OmmAlQubays
 
         private void TriggerCollapse()
         {
-                if (playerMovement != null)
+            if (playerMovement != null)
                 playerMovement.SetThirstSpeedModifier(0f);
+        }
+
+        public void TakeDamage(float amount)
+        {
+            if (_hasCollapsed || _healthDepletedFired)
+                return;
+
+            _currentHealth = Mathf.Max(0f, _currentHealth - amount);
+
+            if (!_healthLowFired && HealthNormalized() <= healthLowThreshold)
+            {
+                _healthLowFired = true;
+                OnHealthLow?.Invoke();
+            }
+
+            if (!_healthDepletedFired && _currentHealth <= 0f)
+            {
+                _healthDepletedFired = true;
+                _hasCollapsed = true;
+                OnHealthDepleted?.Invoke();
+                if (playerMovement != null)
+                    playerMovement.SetThirstSpeedModifier(0f);
+            }
         }
 
         public void RestoreThirst(float amount)
@@ -177,29 +211,19 @@ namespace OmmAlQubays
             baseDrainRate += amount;
         }
 
-        public float ThirstNormalized()
+        public void StartThirstDrain()
         {
-            return _currentThirst / maxThirst;
+            _canDrainThirst = true;
         }
 
-        public float OilNormalized()
-        {
-            return _currentOil / maxOil;
-        }
+        public float ThirstNormalized()  => _currentThirst / maxThirst;
+        public float OilNormalized()     => _currentOil / maxOil;
+        public float HealthNormalized()  => _currentHealth / maxHealth;
 
-        public float CurrentThirst()
-        {
-            return _currentThirst;
-        }
+        public float CurrentThirst()     => _currentThirst;
+        public float currentOil()        => _currentOil;
+        public float CurrentHealth()     => _currentHealth;
 
-        public float currentOil()
-        {
-            return _currentOil;
-        }
-
-        public bool HasCollapsed()
-        {
-            return _hasCollapsed;
-        }
+        public bool HasCollapsed()       => _hasCollapsed;
     }
 }
