@@ -28,14 +28,14 @@ namespace OmmAlQubays
         [SerializeField] private float pulseAmount = 0.35f;
         [SerializeField] private bool doesNotRetreat = false;
         [SerializeField] private float retreatMoveDistance = 40f;
-        [SerializeField] private float retreatDimDuration = 0.6f;
-        [SerializeField] private float retreatReappearDuration = 1.2f;
+        [SerializeField] private float retreatMoveDuration = 14f;
         [SerializeField] private float audioNormalPitch = 1f;
         [SerializeField] private float audioDistortedPitch = 0.88f;
         [SerializeField] private float reverbRoomFar = -10000f;
         [SerializeField] private float reverbRoomClose = -500f;
-        [SerializeField] private float flickerIntensity = 0.75f;
+        [SerializeField] private float flickerIntensity = 3.75f;
         [SerializeField] private bool startDisabled = false;
+        [SerializeField] private JinnSilhouette jinnSilhouette;
         public event Action OnPlayerEnterCloseRange;
         public event Action OnPlayerExitCloseRange;
         private static int s_proximityCount = 0;
@@ -214,40 +214,32 @@ namespace OmmAlQubays
         private IEnumerator RetreatCoroutine()
         {
             _isRetreating = true;
-            float startIntensity = jinnPointLight != null ? jinnPointLight.intensity : baseIntensity;
-            yield return StartCoroutine(LerpLightIntensity(startIntensity, 0f, retreatDimDuration));
+            Vector3 retreatDirection = (transform.position - playerTransform.position).normalized;
+            retreatDirection.y = 0f;
 
-            if (fireParticles != null)
-                fireParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            if (audioSource != null)
-                audioSource.Stop();
-
-            Vector3 awayDir = (transform.position - playerTransform.position).normalized;
-            awayDir.y = 0f;
-            float randomAngle = UnityEngine.Random.Range(-40f, 40f);
-            awayDir = Quaternion.Euler(0f, randomAngle, 0f) * awayDir;
-
-            transform.position += awayDir * retreatMoveDistance;
-            _homePosition = transform.position;
-
-            yield return new WaitForSeconds(0.25f);
-
-            if (fireParticles != null)
-                fireParticles.Play();
-
-            if (audioSource != null)
+            Vector3 startPosition  = transform.position;
+            Vector3 targetPosition = startPosition + retreatDirection * retreatMoveDistance;
+            targetPosition.y       = startPosition.y;
+            float elapsed = 0f;
+            while (elapsed < retreatMoveDuration)
             {
-                audioSource.Play();
-                SetAudioDistortion(0f);
+                elapsed           += Time.deltaTime;
+                float t            = Mathf.SmoothStep(0f, 1f, elapsed / retreatMoveDuration);
+                transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                yield return null;
             }
 
-            yield return StartCoroutine(LerpLightIntensity(0f, baseIntensity, retreatReappearDuration));
+            transform.position = targetPosition;
+            _homePosition      = transform.position;
 
             lanternController?.SetJinnFlicker(false);
             DecrementProximity();
 
             _currentState = JinnState.Idle;
             _isRetreating = false;
+
+            if (jinnSilhouette != null)
+                jinnSilhouette.ResetSilhouette();
         }
 
         private IEnumerator LerpLightIntensity(float from, float to, float duration)
@@ -326,6 +318,11 @@ namespace OmmAlQubays
             return _currentState;
         }
 
+        public void OnSilhouetteDissolved()
+        {
+            //Debug.Log("[JinnLightController] Silhouette dissolved.");
+        }
+        
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {

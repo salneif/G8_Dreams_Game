@@ -21,7 +21,7 @@ namespace OmmAlQubays
         [SerializeField] private float falseWaterRestoreAmount = 10f;
         [SerializeField] private float falseDrainPenalty = 0.2f;
         [SerializeField] private Light glowLight;
-        [SerializeField] private AudioClip pickupClip;
+        [SerializeField] public AudioClip pickupClip;
         [SerializeField] [Range(0f, 1f)] private float pickupVolume = 0.8f;
         private AudioSource _audioSource;
         private bool _hasBeenCollected = false;
@@ -35,7 +35,7 @@ namespace OmmAlQubays
 
         public string GetPromptText() => interactPromptText;
 
-        public void Collect(PlayerStats playerStats)
+        public virtual void Collect(PlayerStats playerStats)
         {
             if (_hasBeenCollected) return;
             _hasBeenCollected = true;
@@ -59,8 +59,6 @@ namespace OmmAlQubays
                 case CollectibleType.FalseWater:
                     playerStats.RestoreThirst(falseWaterRestoreAmount);
                     playerStats.IncreasePermanentDrainRate(falseDrainPenalty);
-
-                    Debug.Log("[Collectible] False water consumed! Drain rate increased by " + falseDrainPenalty);
                     break;
             }
         }
